@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # 1. The Database
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: mysecretpassword
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+
+  # 2. The Message Broker
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  # 3. The API Layer (gRPC Server)
+  api:
+    build: .
+    command: uv run server.py
+    environment:
+      - REDIS_HOST=redis
+      - DB_HOST=postgres
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "50051:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # 4. The Worker Node
+  worker:
+    build: .
+    command: uv run worker.py
+    environment:
+      - REDIS_HOST=redis
+      - DB_HOST=postgres
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+// The service definition (The API endpoints)
+service JobQueue {
+  // A method to submit a job
+  rpc SubmitJob (JobRequest) returns (JobResponse);
+}
+
+// The data coming IN
+message JobRequest {
+  string task_name = 1;
+  string payload = 2; // e.g., a JSON string of arguments
+}
+
+// The data going OUT
+message JobResponse {
+  string job_id = 1;
+  string status = 2;
+}
