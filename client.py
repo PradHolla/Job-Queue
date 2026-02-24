@@ -12,7 +12,7 @@ def run():
         print("Sending mock job to the server...")
         request = job_pb2.JobRequest(
             task_name="process_video",
-            payload='{"file_id": "vid_123", "resolution": "1080p"}'
+            payload='{"file_id": "vid_123", "action": "explode"}' # To trigger a failure
         )
         response = stub.SubmitJob(request)
         

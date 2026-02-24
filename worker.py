@@ -25,31 +25,26 @@ def update_job_status(job_id, status):
 
 def process_job(job_data):
     job_id = job_data.get("job_id")
+    payload = job_data.get("payload")
     
-    # Update DB to show we are working on it
     update_job_status(job_id, "PROCESSING")
     print(f"\n[x] Processing Job {job_id}")
     
-    try:
-        # Simulate heavy work
-        time.sleep(3) 
+    # Let's introduce an artificial way to test failures!
+    # If the payload contains the word "explode", we will force a crash.
+    if "explode" in payload:
+        raise ValueError("Boom! Simulated processing error.")
         
-        # Success! Update DB
-        update_job_status(job_id, "COMPLETED")
-        print(f"    [✔] Completed Job {job_id}")
-        
-    except Exception as e:
-        # Failure! Update DB
-        update_job_status(job_id, "FAILED")
-        print(f"    [!] Failed Job {job_id}: {e}")
+    # Simulate heavy work
+    time.sleep(3) 
+    
+    update_job_status(job_id, "COMPLETED")
+    print(f"    [✔] Completed Job {job_id}")
 
 def start_worker():
     print(f"[*] Worker started. Waiting for jobs in '{QUEUE_NAME}'...")
     
     while True:
-        # BRPOP blocks until a job is available.
-        # It returns a tuple: (queue_name, popped_value)
-        # We use timeout=0 to block indefinitely.
         result = redis_client.brpop(QUEUE_NAME, timeout=0)
         
         if result:
@@ -57,10 +52,23 @@ def start_worker():
             job_data = json.loads(job_json)
             
             try:
+                # Try to process the job
                 process_job(job_data)
+                
             except Exception as e:
-                # In a real system, this is where you'd send the job to a Dead Letter Queue
-                print(f"    [!] Error processing job {job_data.get('job_id')}: {e}")
+                job_id = job_data.get('job_id')
+                # 1. Update the database state to FAILED
+                update_job_status(job_id, "FAILED")
+                
+                # 2. Push the raw job data into the DLQ in Redis
+                # We add the error message so we know WHY it failed
+                dlq_entry = {
+                    "original_job": job_data,
+                    "error_message": str(e)
+                }
+                redis_client.lpush("dlq_queue", json.dumps(dlq_entry))
+                
+                print(f"    [!] Failed Job {job_id}. Moved to DLQ. Error: {e}")
 
 if __name__ == '__main__':
     start_worker()
