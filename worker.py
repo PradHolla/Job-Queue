@@ -42,19 +42,23 @@ def process_job(job_data):
     print(f"    [✔] Completed Job {job_id}")
 
 def start_worker():
-    print(f"[*] Worker started. Waiting for jobs in '{QUEUE_NAME}'...")
+    # Notice we list HIGH priority first!
+    QUEUES = ["high_priority_queue", "default_queue"]
+    print(f"[*] Worker started. Listening to: {QUEUES}...")
     
     while True:
-        result = redis_client.brpop(QUEUE_NAME, timeout=0)
+        # BRPOP takes a list of keys. It will pop from 'high_priority_queue' 
+        # as long as there are items. It only checks 'default_queue' if high is empty.
+        result = redis_client.brpop(QUEUES, timeout=0)
         
         if result:
-            queue, job_json = result
+            queue_name, job_json = result
             job_data = json.loads(job_json)
             
+            print(f"\n[!] Pulled from {queue_name.upper()}")
+            
             try:
-                # Try to process the job
                 process_job(job_data)
-                
             except Exception as e:
                 job_id = job_data.get('job_id')
                 # 1. Update the database state to FAILED

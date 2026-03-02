@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tjob.proto\"0\n\nJobRequest\x12\x11\n\ttask_name\x18\x01 \x01(\t\x12\x0f\n\x07payload\x18\x02 \x01(\t\"-\n\x0bJobResponse\x12\x0e\n\x06job_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t22\n\x08JobQueue\x12&\n\tSubmitJob\x12\x0b.JobRequest\x1a\x0c.JobResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tjob.proto\"B\n\nJobRequest\x12\x11\n\ttask_name\x18\x01 \x01(\t\x12\x0f\n\x07payload\x18\x02 \x01(\t\x12\x10\n\x08priority\x18\x03 \x01(\t\"-\n\x0bJobResponse\x12\x0e\n\x06job_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t22\n\x08JobQueue\x12&\n\tSubmitJob\x12\x0b.JobRequest\x1a\x0c.JobResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,9 +32,9 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'job_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_JOBREQUEST']._serialized_start=13
-  _globals['_JOBREQUEST']._serialized_end=61
-  _globals['_JOBRESPONSE']._serialized_start=63
-  _globals['_JOBRESPONSE']._serialized_end=108
-  _globals['_JOBQUEUE']._serialized_start=110
-  _globals['_JOBQUEUE']._serialized_end=160
+  _globals['_JOBREQUEST']._serialized_end=79
+  _globals['_JOBRESPONSE']._serialized_start=81
+  _globals['_JOBRESPONSE']._serialized_end=126
+  _globals['_JOBQUEUE']._serialized_start=128
+  _globals['_JOBQUEUE']._serialized_end=178
 # @@protoc_insertion_point(module_scope)

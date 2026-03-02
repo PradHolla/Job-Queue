@@ -10,6 +10,7 @@ service JobQueue {
 message JobRequest {
   string task_name = 1;
   string payload = 2; // e.g., a JSON string of arguments
+  string priority = 3;
 }
 
 // The data going OUT

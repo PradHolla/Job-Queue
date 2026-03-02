@@ -34,11 +34,15 @@ class JobQueueServicer(job_pb2_grpc.JobQueueServicer):
         cur.close()
         conn.close()
         
-        # 2. PUSH TO REDIS SECOND
+        # 2. PUSH TO REDIS SECOND (Now with Routing!)
         job_data = {"job_id": job_id, "task_name": request.task_name, "payload": request.payload}
-        redis_client.lpush("task_queue", json.dumps(job_data))
         
-        print(f"--> Saved Job {job_id} to DB and pushed to Redis.")
+        # Determine which queue to use
+        target_queue = "high_priority_queue" if request.priority == "HIGH" else "default_queue"
+        
+        redis_client.lpush(target_queue, json.dumps(job_data))
+        
+        print(f" Saved Job {job_id} to DB and pushed to {target_queue}")
         return job_pb2.JobResponse(job_id=job_id, status="QUEUED")
 
 def serve():
@@ -46,7 +50,7 @@ def serve():
     job_pb2_grpc.add_JobQueueServicer_to_server(JobQueueServicer(), server)
     server.add_insecure_port('[::]:50051')
     server.start()
-    print("gRPC API Server running on port 50051...")
+    print("gRPC API Server running on port 50051")
     server.wait_for_termination()
 
 if __name__ == '__main__':
