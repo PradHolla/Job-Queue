@@ -1,28 +1,25 @@
 import grpc
 import job_pb2
 import job_pb2_grpc
-import time
 
 def run():
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = job_pb2_grpc.JobQueueStub(channel)
         
-        print("Sending 5 DEFAULT priority jobs...")
-        for i in range(5):
-            request = job_pb2.JobRequest(
-                task_name=f"background_sync_{i}",
-                payload='{"data": "bulk"}',
-                priority="DEFAULT"
-            )
-            stub.SubmitJob(request)
-            
-        print("Sending 1 HIGH priority job...")
+        # We define a job request
         request = job_pb2.JobRequest(
-            task_name="PASSWORD_RESET_EMAIL",
-            payload='{"user": "admin"}',
+            task_name="charge_credit_card",
+            payload='{"user_id": "999", "amount": "$50"}',
             priority="HIGH"
         )
-        stub.SubmitJob(request)
+        
+        print("Sending the job")
+        response1 = stub.SubmitJob(request)
+        
+        print("Sending the EXACT SAME job payload again")
+        # In a real scenario, the API would generate the same deterministic ID based on the payload, 
+        # but for our test, we'll just trust that the worker handles idempotency for any duplicate ID.
+        response2 = stub.SubmitJob(request)
 
 if __name__ == '__main__':
     run()

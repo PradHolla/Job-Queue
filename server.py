@@ -21,28 +21,37 @@ def get_db_connection():
 
 class JobQueueServicer(job_pb2_grpc.JobQueueServicer):
     def SubmitJob(self, request, context):
-        job_id = str(uuid.uuid4())
+        # 1. GENERATE DETERMINISTIC ID
+        # Combine the task name and payload into one string
+        unique_string = f"{request.task_name}:{request.payload}"
         
-        # 1. SAVE TO DATABASE FIRST
+        # Create a consistent UUID based on that string
+        job_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, unique_string))
+        
+        # 2. SAVE TO DATABASE (With Conflict Handling)
         conn = get_db_connection()
         cur = conn.cursor()
+        
+        # If this exact ID already exists in the DB, do nothing!
         cur.execute(
-            "INSERT INTO jobs (id, task_name, payload, status) VALUES (%s, %s, %s, %s)",
+            """
+            INSERT INTO jobs (id, task_name, payload, status) 
+            VALUES (%s, %s, %s, %s) 
+            ON CONFLICT (id) DO NOTHING
+            """,
             (job_id, request.task_name, request.payload, "QUEUED")
         )
         conn.commit()
         cur.close()
         conn.close()
         
-        # 2. PUSH TO REDIS SECOND (Now with Routing!)
+        # 3. PUSH TO REDIS
         job_data = {"job_id": job_id, "task_name": request.task_name, "payload": request.payload}
-        
-        # Determine which queue to use
         target_queue = "high_priority_queue" if request.priority == "HIGH" else "default_queue"
         
         redis_client.lpush(target_queue, json.dumps(job_data))
         
-        print(f" Saved Job {job_id} to DB and pushed to {target_queue}")
+        print(f"--> Saved Job {job_id} and pushed to {target_queue}.")
         return job_pb2.JobResponse(job_id=job_id, status="QUEUED")
 
 def serve():

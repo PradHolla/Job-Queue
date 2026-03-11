@@ -27,15 +27,24 @@ def process_job(job_data):
     job_id = job_data.get("job_id")
     payload = job_data.get("payload")
     
+    # 1. THE IDEMPOTENCY CHECK
+    # We try to set a key unique to this job. 
+    # nx=True means "Set only if it does not exist"
+    # ex=86400 means "Keep this lock for 24 hours to prevent old duplicates"
+    lock_key = f"idempotency:{job_id}"
+    acquired_lock = redis_client.set(lock_key, "locked", nx=True, ex=86400)
+    
+    if not acquired_lock:
+        print(f"\n[!] Idempotency kick-in! Job {job_id} was already processed. Skipping.")
+        return # Exit early, do not process!
+
+    # 2. Proceed with normal processing
     update_job_status(job_id, "PROCESSING")
     print(f"\n[x] Processing Job {job_id}")
     
-    # Let's introduce an artificial way to test failures!
-    # If the payload contains the word "explode", we will force a crash.
     if "explode" in payload:
         raise ValueError("Boom! Simulated processing error.")
         
-    # Simulate heavy work
     time.sleep(3) 
     
     update_job_status(job_id, "COMPLETED")
